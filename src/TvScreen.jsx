@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { announceNumber, playReminder } from './audio'
 import AdCarousel from './AdCarousel'
+import { ref, onValue } from 'firebase/database'
+import { db } from './firebase'
 
 export default function TvScreen() {
   const [ticket, setTicket] = useState(0)
@@ -8,32 +10,38 @@ export default function TvScreen() {
   const [flash, setFlash] = useState(false)
   const [customMsg, setCustomMsg] = useState("")
 
+  const prevTicketRef = useRef(0)
+  const isInitialLoad = useRef(true)
+
   useEffect(() => {
     const clockTimer = setInterval(() => setTime(new Date()), 1000)
 
-    const stored = localStorage.getItem('currentTicket')
-    if (stored) setTicket(parseInt(stored, 10))
-      
-    const storedMsg = localStorage.getItem('customMessage')
-    if (storedMsg) setCustomMsg(storedMsg)
-
-    const handleStorageChange = (e) => {
-      if (e.key === 'currentTicket') {
-        const newTicket = parseInt(e.newValue, 10)
-        if (newTicket > parseInt(e.oldValue || 0, 10)) {
-           announceNumber()
-           setFlash(true)
-           setTimeout(() => setFlash(false), 1200)
+    // Listen to Firebase Realtime Database
+    const queueRef = ref(db, 'queueData')
+    const unsubscribe = onValue(queueRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        const newTicket = data.currentTicket || 0
+        
+        // Trigger animations and audio if number increased (not on initial load)
+        if (!isInitialLoad.current) {
+          if (newTicket > prevTicketRef.current) {
+             announceNumber()
+             setFlash(true)
+             setTimeout(() => setFlash(false), 1200)
+          }
+        } else {
+          isInitialLoad.current = false
         }
+        
         setTicket(newTicket)
+        prevTicketRef.current = newTicket
+        
+        if (data.customMessage !== undefined) {
+          setCustomMsg(data.customMessage)
+        }
       }
-      
-      if (e.key === 'customMessage') {
-        setCustomMsg(e.newValue || "")
-      }
-    }
-
-    window.addEventListener('storage', handleStorageChange)
+    })
     
     const reminderTimer = setInterval(() => {
       playReminder()
@@ -42,7 +50,7 @@ export default function TvScreen() {
     return () => {
       clearInterval(clockTimer)
       clearInterval(reminderTimer)
-      window.removeEventListener('storage', handleStorageChange)
+      unsubscribe()
     }
   }, [])
 
@@ -78,7 +86,7 @@ export default function TvScreen() {
         </svg>
       </button>
 
-      {/* Much Smaller Top Header Bar */}
+      {/* Smaller Top Header Bar */}
       <div className="flex justify-between items-center px-8 py-3 bg-slate-950/80 backdrop-blur-md border-b border-white/5 shadow-xl z-10">
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]"></div>

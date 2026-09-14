@@ -1,25 +1,31 @@
 import { useState, useEffect } from 'react'
+import { ref, onValue, set } from 'firebase/database'
+import { db } from './firebase'
 
 export default function WorkerScreen() {
   const [ticket, setTicket] = useState(0)
   const [stats, setStats] = useState([])
   const [customMsg, setCustomMsg] = useState("")
 
-  // Load initial data
+  // Load data from Firebase
   useEffect(() => {
-    const stored = localStorage.getItem('currentTicket')
-    if (stored) setTicket(parseInt(stored, 10))
+    const queueRef = ref(db, 'queueData')
+    const unsubscribe = onValue(queueRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        setTicket(data.currentTicket || 0)
+        setCustomMsg(data.customMessage || "")
 
-    const storedMsg = localStorage.getItem('customMessage')
-    if (storedMsg) setCustomMsg(storedMsg)
-
-    const today = new Date().toLocaleDateString()
-    const storedStats = JSON.parse(localStorage.getItem('queueStats') || '{}')
-    if (storedStats.date === today) {
-      setStats(storedStats.times || [])
-    } else {
-      localStorage.setItem('queueStats', JSON.stringify({ date: today, times: [] }))
-    }
+        const today = new Date().toLocaleDateString()
+        if (data.stats && data.stats.date === today) {
+          setStats(data.stats.times || [])
+        } else {
+          setStats([])
+        }
+      }
+    })
+    
+    return () => unsubscribe()
   }, [])
 
   // Keyboard shortcut listener
@@ -35,40 +41,39 @@ export default function WorkerScreen() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [ticket, stats])
+  }, [ticket, stats, customMsg])
 
   const handleNext = () => {
     const nextTicket = ticket + 1
-    setTicket(nextTicket)
-    localStorage.setItem('currentTicket', nextTicket.toString())
-    
-    // Update daily stats
     const newStats = [...stats, Date.now()]
-    setStats(newStats)
-    localStorage.setItem('queueStats', JSON.stringify({
-      date: new Date().toLocaleDateString(),
-      times: newStats
-    }))
+    
+    // Update Firebase directly
+    set(ref(db, 'queueData'), {
+      currentTicket: nextTicket,
+      customMessage: customMsg,
+      stats: {
+        date: new Date().toLocaleDateString(),
+        times: newStats
+      }
+    })
   }
 
   const handleUndo = () => {
     if (ticket > 0) {
-      const prevTicket = ticket - 1
-      setTicket(prevTicket)
-      localStorage.setItem('currentTicket', prevTicket.toString())
+      set(ref(db, 'queueData/currentTicket'), ticket - 1)
     }
   }
 
   const handleReset = () => {
     if (window.confirm("هل أنت متأكد أنك تريد تصفير العداد؟")) {
-      setTicket(0)
-      localStorage.setItem('currentTicket', '0')
+      set(ref(db, 'queueData/currentTicket'), 0)
     }
   }
 
   const handleMsgChange = (e) => {
-    setCustomMsg(e.target.value)
-    localStorage.setItem('customMessage', e.target.value)
+    const newMsg = e.target.value
+    setCustomMsg(newMsg)
+    set(ref(db, 'queueData/customMessage'), newMsg)
   }
 
   // Calculate average time
