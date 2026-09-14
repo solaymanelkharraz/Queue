@@ -9,6 +9,7 @@ export default function TvScreen() {
   const [time, setTime] = useState(new Date())
   const [flash, setFlash] = useState(false)
   const [customMsg, setCustomMsg] = useState("")
+  const [hasInteracted, setHasInteracted] = useState(false)
 
   const prevTicketRef = useRef(0)
   const isInitialLoad = useRef(true)
@@ -44,7 +45,9 @@ export default function TvScreen() {
     })
     
     const reminderTimer = setInterval(() => {
-      playReminder()
+      if (hasInteracted) {
+        playReminder()
+      }
     }, 5 * 60 * 1000)
 
     return () => {
@@ -52,7 +55,7 @@ export default function TvScreen() {
       clearInterval(reminderTimer)
       unsubscribe()
     }
-  }, [])
+  }, [hasInteracted])
 
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
@@ -71,6 +74,24 @@ export default function TvScreen() {
   const marqueeText = customMsg 
     ? `${customMsg} ✨ ${basePhrases}`
     : basePhrases
+
+  if (!hasInteracted) {
+    return (
+      <div 
+        dir="rtl"
+        onClick={() => setHasInteracted(true)}
+        className="h-screen w-screen bg-slate-900 flex flex-col items-center justify-center cursor-pointer text-white hover:bg-slate-800 transition-colors"
+      >
+        <div className="w-24 h-24 bg-blue-500/20 rounded-full flex items-center justify-center mb-8 animate-pulse border-4 border-blue-500 shadow-[0_0_40px_rgba(59,130,246,0.5)]">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+        </div>
+        <h1 className="text-5xl font-black mb-6">اضغط في أي مكان للبدء</h1>
+        <p className="text-2xl text-slate-400 font-semibold">هذا الإجراء ضروري للسماح للمتصفح بتشغيل الصوت تلقائياً</p>
+      </div>
+    )
+  }
 
   return (
     <div dir="rtl" className="h-screen w-screen bg-slate-900 text-white flex flex-col overflow-hidden group relative">
