@@ -11,14 +11,15 @@
   animation: flash-green 1.2s cubic-bezier(0.1, 0.8, 0.2, 1);
 }
 
-@keyframes marquee {
-  0% { transform: translateX(100vw); }
-  100% { transform: translateX(-150vw); }
+@keyframes marquee-infinite-rtl {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); } 
 }
 
 .animate-marquee {
-  display: inline-block;
-  animation: marquee 25s linear infinite;
+  display: flex;
+  width: max-content;
+  animation: marquee-infinite-rtl 40s linear infinite;
   will-change: transform;
 }
 
