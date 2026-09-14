@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+@import "tailwindcss";
+
+@keyframes flash-green {
+  0% { color: #fff; transform: scale(1); text-shadow: none; }
+  15% { color: #4ade80; transform: scale(1.1); text-shadow: 0 0 60px rgba(74, 222, 128, 0.8); }
+  100% { color: #fff; transform: scale(1); text-shadow: none; }
+}
+
+.animate-flash {
+  animation: flash-green 1.2s cubic-bezier(0.1, 0.8, 0.2, 1);
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-150vw); }
+}
+
+.animate-marquee {
+  display: inline-block;
+  animation: marquee 25s linear infinite;
+  will-change: transform;
+}
+
+body {
+  margin: 0;
+  font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
